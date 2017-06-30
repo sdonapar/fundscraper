@@ -99,7 +99,6 @@ def get_fund_name(page_source):
     fund_ticker = str(title_parts[0])
     fund_long_name = str(title_parts[2]) + ' ' + str(' '.join(title_parts[3:-3]))
     fund_short_name = fund_long_name.replace('Fidelity', '').replace('Portfolio', '').replace('Fund', '')
-    fund_short_name = fund_short_name.lower()
     return (fund_ticker, fund_short_name, fund_long_name)
 
 
@@ -173,11 +172,11 @@ def get_fund_data(driver, url):
 
 
 if __name__ == '__main__':
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.Table("fund_details")
+    #dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    #table = dynamodb.Table("fund_details")
 
-    display = Display(visible=0, size=(1024, 768))
-    display.start()
+    #display = Display(visible=0, size=(1024, 768))
+    # display.start()
     driver = webdriver.Chrome()
     base_url = "https://www.fidelity.com/fund-screener/evaluator.shtml#!&mgdBy=F&ntf=N&pgNo={0}"
 
@@ -198,11 +197,13 @@ if __name__ == '__main__':
 
         if (fund_data.get('fund_id', '') and fund_data.get('fund_short_name', '')):
             try:
-                fund_holdings = fund_data.pop('holdings')
-                # table.put_item(Item=fund_data)
+                if (fund_data.get('holdings', '')):
+                    fund_holdings = fund_data.pop('holdings')
+                    stock_urls.extend(fund_holdings)
+                #   table.put_item(Item=fund_data)
                 fund_out.write(json.dumps(fund_data))
                 fund_out.write("\n")
-                stock_urls.extend(fund_holdings)
+
                 print("Completed extraction of fund_data:{0}, {1}".format(fund_data['fund_id'], fund_data['fund_short_name']))
             except Exception as e:
                 print(e)
