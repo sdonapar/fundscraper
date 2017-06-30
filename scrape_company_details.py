@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from pyvirtualdisplay import Display
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
+import json
 
 # from boto3.dynamodb.types import Decimal
 
@@ -111,23 +112,29 @@ if __name__ == '__main__':
 
     summary_urls = get_company_urls('company_urls.txt')
     print("There are total {0} stocks".format(len(summary_urls)))
-    display = Display(visible=0, size=(1024, 768))
-    display.start()
+    #display = Display(visible=0, size=(1024, 768))
+    # display.start()
     driver = webdriver.Chrome()
     # base_url = "https://www.fidelity.com/fund-screener/evaluator.shtml#!&mgdBy=F&ntf=N&pgNo={0}"
-    for name, symbol, url in list(summary_urls)[0:]:
-        item = ""
-        if symbol:
-            item = get_stock(symbol)
-        if not item and url:
+    stock_out = open("stock_details.json", "w")
+    print(list(summary_urls)[0])
+    for name, symbol, url in list(summary_urls)[0:3]:
+        #item = ""
+        # if symbol:
+        #    print(symbol)
+        #    item = get_stock(symbol)
+        if url:
             try:
                 print("started - {0}".format(name))
                 page_source = get_page_source(driver, url)
                 soup = BeautifulSoup(page_source, 'lxml')
                 stock_data = get_stock_data(soup, symbol, name)
-                table.put_item(Item=stock_data)
+                # table.put_item(Item=stock_data)
+                stock_out.write(json.dumps(stock_data))
+                stock_out.write("\n")
             except Exception as e:
                 print("Error occured  for {0}".format(name))
                 print(name, symbol)
                 print(e)
     driver.close()
+    stock_out.close()
