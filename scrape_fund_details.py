@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from pyvirtualdisplay import Display
 import boto3
 from boto3.dynamodb.types import Decimal
+import json
 
 
 def get_page_source(driver, url, sleep_time=5):
@@ -150,7 +151,7 @@ def get_fund_data(driver, url):
     fund_manager = get_fund_manager(page_source)
     fund_holdings = get_fund_holdings(page_source)
     fund_holdings_details = get_fund_holdings_details(page_source)
-    fund_text = get_fund_objectives(page_source)
+    #fund_text = get_fund_objectives(page_source)
     fund_data['fund_id'] = fund_id
     fund_data['fund_short_name'] = fund_short_name
     fund_data['fund_long_name'] = fund_long_name
@@ -160,12 +161,14 @@ def get_fund_data(driver, url):
     fund_data['holdings'] = fund_holdings_details
     for key, value in fund_details:
         if key == "NAV":
-            value = Decimal(value.replace('$', '').replace(',', ''))
+            #value = Decimal(value.replace('$', '').replace(',', ''))
+            value = value.replace('$', '').replace(',', '')
         if 'Portfolio Net Assets' in key:
-            value = Decimal(value.replace('$', '').replace(',', ''))
+            #value = Decimal(value.replace('$', '').replace(',', ''))
+            value = value.replace('$', '').replace(',', '')
         fund_data[key] = value
-    for key in fund_text:
-        fund_data[key] = fund_text[key]
+    # for key in fund_text:
+    #    fund_data[key] = fund_text[key]
     return fund_data
 
 
@@ -181,6 +184,8 @@ if __name__ == '__main__':
     summary_urls = get_fund_urls('fund_urls.txt', base_url)
     stock_urls = []
 
+    fund_out = open("fund_details.json", "w")
+
     for url in summary_urls[0:]:
         fund_data = get_fund_data(driver, url)
         keys_to_be_deleted = []
@@ -194,14 +199,18 @@ if __name__ == '__main__':
         if (fund_data.get('fund_id', '') and fund_data.get('fund_short_name', '')):
             try:
                 fund_holdings = fund_data.pop('holdings')
-                table.put_item(Item=fund_data)
+                # table.put_item(Item=fund_data)
+                fund_out.write(json.dumps(fund_data))
+                fund_out.write("\n")
                 stock_urls.extend(fund_holdings)
                 print("Completed extraction of fund_data:{0}, {1}".format(fund_data['fund_id'], fund_data['fund_short_name']))
-            except:
-                print(fund_data)
+            except Exception as e:
+                print(e)
+                print(fund_data.get('fund_id', 'unknown'))
         else:
             print("Not added: " + fund_data['fund_id'])
 
+    fund_out.close()
     fh = open("company_urls.txt", "w")
     for doc in stock_urls:
         if (doc):
